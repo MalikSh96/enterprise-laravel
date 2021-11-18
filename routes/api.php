@@ -22,6 +22,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('/users', [UserController::class, 'index']);
 
+Route::post('/create', [UserController::class, 'store']);
+
 Route::get('/swagger.json', function () {
     return Generator::scan([ app_path(), ])->toJson();
 });
