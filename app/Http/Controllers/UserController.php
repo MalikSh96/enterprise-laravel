@@ -24,32 +24,30 @@ use App\Forms\UserForm as Form;
  */
 class UserController extends Controller
 {
-  /**
-  * @OA\Get(path="/api/users", description="Get all users", operationId="",
-  *   @OA\Response(response=200, description="OK",
-  *     @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/User"))
-  *   ),
-  *   @OA\Response(response=401, description="Unauthorized"),
-  *   @OA\Response(response=404, description="Not Found")
-  * )
-  */
-  public function index(Request $request)
-  {
-      return User::all();
-  }
+    /**
+    * @OA\Get(path="/api/users", description="Get all users", operationId="",
+    *   @OA\Response(response=200, description="OK",
+    *     @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/User"))
+    *   ),
+    *   @OA\Response(response=404, description="Not Found")
+    * )
+    */
+    public function index(Request $request)
+    {
+        return User::all();
+    }
 
-  /**
-  * @OA\Post(path="/api/create", description="Create user", operationId="",
-  *   @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/User"), required=true,description="The creation of a user"),
-  *   @OA\Response(response=201, description="Created",
-  *     @OA\JsonContent(ref="#/components/schemas/User")
-  *   ),
-  *   @OA\Response(response=401, description="Unauthorized"),
-  *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
-  * )
-  */
-  public function store(Form $request)
-  {
-    return $request->save();
-  }
+    /**
+    * @OA\Post(path="/api/users", description="Create user", operationId="",
+    *   @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/User"), required=true,description="The creation of a user"),
+    *   @OA\Response(response=200, description="OK",
+    *     @OA\JsonContent(ref="#/components/schemas/User")
+    *   ),
+    *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
+    * )
+    */
+    public function store(Form $request)
+    {
+        return $request->save();
+    }
 }

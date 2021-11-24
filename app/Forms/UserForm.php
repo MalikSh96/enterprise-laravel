@@ -2,47 +2,34 @@
 
 namespace App\Forms;
 
-use OpenApi\Generator;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\User;
 
-/**
- * @OA\Schema(
- *     schema="User",
- *      required={
- *      "name",
- *      "email"
- *     }
- * )
- */
 class UserForm extends FormRequest {
-  
-    /** @OA\Property() */
-    public string $name;
-    /** @OA\Property() */
-    public string $email;
 
     public function authorize()
     {
-
+        return true;
     }
 
     public function rules()
     {
-      return [
-        'name' => 'required|string',
-        'email' => 'required|string',
-      ];
+        return [
+          'name' => 'required|string',
+          'email' => 'required|string|email',
+        ];
     }
 
     public function save()
     {
-      $user = new User();
-      $user->name = $this->name;
-      $user->email = $this->email;
-      $user->save();
-      return [
-        'name' = $user->name,
-        'email' => $user->email
-      ]
+        $user = new User();
+        $user->name = $this->name;
+        $user->email = $this->email;
+        $user->password = bcrypt("asd");
+        $user->save();
+        return [
+          'name' => $user->name,
+          'email' => $user->email,
+        ];
     }
 }
