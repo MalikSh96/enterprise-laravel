@@ -31,8 +31,6 @@ class UserTest extends TestCase
         $this->validator = (new ValidatorBuilder)
             ->fromJson(file_get_contents('http://127.0.0.1:8000/api/swagger.json'))
             ->getRoutedRequestValidator();
-
-        $uniqueTimestamp = microtime(true);
     }
 
     public function test_all_users_getting_retrieved()
