@@ -23,11 +23,12 @@ class UserTest extends TestCase
       'email' => 'fake_email@test.com'
     ];
 
+    private string $requestMethod;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->address = new OperationAddress($this->userEndpoint, 'post');
         $this->validator = (new ValidatorBuilder)
             ->fromJson(file_get_contents('http://127.0.0.1:8000/api/swagger.json'))
             ->getRoutedRequestValidator();
@@ -58,8 +59,7 @@ class UserTest extends TestCase
     public function test_that_swagger_and_serverside_fails_if_payload_is_not_correct($status, array $payload, string $expectedKeyOfFailure)
     {
         $initialCount = User::all()->count();
-
-        $request = $this->wrapServerRequest($payload);
+        $request = $this->wrapServerRequest($payload, 'post');
 
         try {
             $this->validator->validate($this->address, $request);
@@ -94,7 +94,7 @@ class UserTest extends TestCase
 
     public function test_that_swagger_validates_good_payload()
     {
-        $request = $this->wrapServerRequest($this->mockPayload);
+        $request = $this->wrapServerRequest($this->mockPayload, 'post');
 
         try {
             $this->validator->validate($this->address, $request);
@@ -107,8 +107,48 @@ class UserTest extends TestCase
         }
     }
 
-    private function wrapServerRequest(array $payload): ServerRequest
+    public function test_that_serverside_updates_user()
     {
+        $user = User::find(1);
+        $updatedMockPayloadUser = [
+            'name' => 'updating_name',
+            'email' => 'updating@email.com',
+        ];
+        $response = $this->patchJson("{$this->userEndpoint}/{$user->id}", $updatedMockPayloadUser);
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('users', [
+            'name' => $updatedMockPayloadUser['name'],
+            'email' => $updatedMockPayloadUser['email']
+        ]);
+    }
+
+    public function test_that_swagger_reaches_correct_endpoint_method()
+    {
+        $updatedMockPayloadUser = [
+            'name' => 'changedName',
+            'email' => 'changing@email.com',
+        ];
+        $this->address = new OperationAddress("{$this->userEndpoint}/1", 'patch');
+
+        $request = (new ServerRequest('patch', "{$this->userEndpoint}/1"))
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody(Utils::streamFor(json_encode($updatedMockPayloadUser)));
+
+        try {
+            $this->validator->validate($this->address, $request);
+            $this->addToAssertionCount(1);
+        } catch (InvalidBody $e) {
+            $latestException = $e->getMessage();
+            $previousException = $e->getPrevious()->getMessage();
+            $exceptionLocation = implode(".", $e->getPrevious()->dataBreadCrumb()->buildChain());
+            $this->fail("$latestException $previousException $exceptionLocation");
+        }
+    }
+
+    private function wrapServerRequest(array $payload, string $requestMethod): ServerRequest
+    {
+        $this->address = new OperationAddress($this->userEndpoint, $requestMethod);
         return (new ServerRequest('post', $this->userEndpoint))
             ->withHeader('Content-Type', 'application/json')
             ->withBody(Utils::streamFor(json_encode($payload)));

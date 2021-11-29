@@ -48,6 +48,20 @@ class UserController extends Controller
     */
     public function store(Form $request)
     {
-        return $request->save();
+        return $request->saveOrUpdate();
+    }
+
+    /**
+    * @OA\Patch(path="/api/users/{userId}", description="Update user based on user id", operationId="",
+    *   @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/User"), required=true,description="The updating of a user"),
+    *   @OA\Response(response=200, description="OK",
+    *     @OA\JsonContent(ref="#/components/schemas/User")
+    *   ),
+    *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
+    * )
+    */
+    public function update(Form $request, int $id)
+    {
+        return $request->saveOrUpdate($id);
     }
 }

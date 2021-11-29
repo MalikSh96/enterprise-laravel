@@ -3,6 +3,7 @@
 namespace App\Forms;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use App\Models\User;
 
 class UserForm extends FormRequest {
@@ -20,13 +21,21 @@ class UserForm extends FormRequest {
         ];
     }
 
-    public function save()
+    public function saveOrUpdate(?int $id = null)
     {
-        $user = new User();
+        if($this->isMethod('post'))
+        {
+            $user = new User();
+            $user->password = bcrypt("asd");
+        }
+        else
+        {
+            $user = User::find($id);
+        }
         $user->name = $this->name;
         $user->email = $this->email;
-        $user->password = bcrypt("asd");
         $user->save();
+
         return [
           'name' => $user->name,
           'email' => $user->email,
