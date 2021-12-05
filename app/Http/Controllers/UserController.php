@@ -8,6 +8,15 @@ use OpenApi\Generator;
 use App\Forms\UserForm as Form;
 
 /**
+ * @OA\SecurityScheme(
+ *     securityScheme="bearerAuth",
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="JWT",
+ * )
+ */
+
+/**
  * @OA\Swagger(
  *     schemes={"https"},
  *     host="mywebsite.com",
@@ -25,10 +34,14 @@ use App\Forms\UserForm as Form;
 class UserController extends Controller
 {
     /**
-    * @OA\Get(path="/api/users", description="Get all users", operationId="",
+    * @OA\Get(path="/api/users",
+    *   security={"bearerAuth": {}},
+    *   description="Get all users",
+    *   operationId="",
     *   @OA\Response(response=200, description="OK",
     *     @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/User"))
     *   ),
+    *   @OA\Response(response=401, description="Unauthorized"),
     *   @OA\Response(response=404, description="Not Found")
     * )
     */
@@ -38,11 +51,15 @@ class UserController extends Controller
     }
 
     /**
-    * @OA\Post(path="/api/users", description="Create user", operationId="",
+    * @OA\Post(path="/api/users",
+    *   security={"bearerAuth": {}},
+    *   description="Create user",
+    *   operationId="",
     *   @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/User"), required=true,description="The creation of a user"),
     *   @OA\Response(response=200, description="OK",
     *     @OA\JsonContent(ref="#/components/schemas/User")
     *   ),
+    *   @OA\Response(response=401, description="Unauthorized"),
     *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
     * )
     */
@@ -52,11 +69,24 @@ class UserController extends Controller
     }
 
     /**
-    * @OA\Patch(path="/api/users/{userId}", description="Update user based on user id", operationId="",
+    * @OA\Patch(path="/api/users/{userId}",
+    *   security={"bearerAuth": {}},
+    *   description="Update user based on user id",
+    *   operationId="",
+    *   @OA\Parameter(
+    *     name="userId",
+    *     in="path",
+    *     @OA\Schema(
+    *      type="string",
+    *     ),
+    *     required=true,
+    *     description="Numeric ID of the user to patch",
+    *   ),
     *   @OA\RequestBody(@OA\JsonContent(ref="#/components/schemas/User"), required=true,description="The updating of a user"),
     *   @OA\Response(response=200, description="OK",
     *     @OA\JsonContent(ref="#/components/schemas/User")
     *   ),
+    *   @OA\Response(response=401, description="Unauthorized"),
     *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
     * )
     */

@@ -10,6 +10,7 @@ use App\Models\User;
 use GuzzleHttp\Psr7\{ServerRequest, Utils};
 use League\OpenAPIValidation\PSR7\{OperationAddress, RoutedServerRequestValidator, ValidatorBuilder};
 use League\OpenAPIValidation\PSR7\Exception\Validation\InvalidBody;
+use Laravel\Sanctum\Sanctum;
 
 class UserTest extends TestCase
 {
@@ -23,7 +24,7 @@ class UserTest extends TestCase
       'email' => 'fake_email@test.com'
     ];
 
-    private string $requestMethod;
+    private User $privilegedUser;
 
     protected function setUp(): void
     {
@@ -32,10 +33,13 @@ class UserTest extends TestCase
         $this->validator = (new ValidatorBuilder)
             ->fromJson(file_get_contents('http://127.0.0.1:8000/api/swagger.json'))
             ->getRoutedRequestValidator();
+
+        $this->privilegedUser = User::find(2);
     }
 
     public function test_all_users_getting_retrieved()
     {
+        Sanctum::actingAs($this->privilegedUser);
         $userIdsInDatabase = User::pluck('id');
         $response = $this->json('GET', $this->userEndpoint);
         $response->assertOk();
@@ -70,10 +74,45 @@ class UserTest extends TestCase
             $expectedKeyOfFailure == $exceptionLocation ? $this->addToAssertionCount(1) : $this->fail("$latestException $previousException $exceptionLocation");
         }
 
+        Sanctum::actingAs($this->privilegedUser);
         $response = $this->postJson($this->userEndpoint, $payload);
         $response->assertStatus($status, $response);
         $response->assertJsonValidationErrors([$expectedKeyOfFailure]);
         $this->assertDatabaseCount('users', $initialCount);
+    }
+
+    public function test_that_correct_payload_cannot_be_created_due_to_unathorization()
+    {
+        $initialCount = User::all()->count();
+        $response = $this->postJson($this->userEndpoint, $this->mockPayload);
+        $response->assertStatus(401, $response);
+        $this->assertDatabaseCount('users', $initialCount);
+    }
+
+    public function test_that_existing_user_cannot_be_updated_due_to_unathorization()
+    {
+        $user = User::find(1);
+        $updatedMockPayloadUser = [
+            'name' => 'unauthorizedNameChange',
+            'email' => 'updating@email.com',
+        ];
+
+        $response = $this->patchJson("{$this->userEndpoint}/{$user->id}", $updatedMockPayloadUser);
+        $response->assertStatus(401);
+
+        $this->assertDatabaseMissing('users', [
+            'name' => $updatedMockPayloadUser['name'],
+            'email' => $updatedMockPayloadUser['email']
+        ]);
+    }
+
+    public function test_that_user_cannot_see_list_of_all_users_due_to_unauthorization()
+    {
+        $userIdsInDatabase = User::pluck('id');
+        $response = $this->json('GET', $this->userEndpoint);
+        $response->assertStatus(401);
+        $userIdsInResponse = collect(json_decode($response->content()))->pluck('id');
+        $this->assertFalse($userIdsInResponse->diff($userIdsInDatabase)->isEmpty());
     }
 
     public function test_that_correct_payload_can_be_created_serverside()
@@ -83,6 +122,8 @@ class UserTest extends TestCase
             'name' => "{$uniqueTimestamp}-fake-name",
             'email' => "{$uniqueTimestamp}test@email.com",
         ];
+
+        Sanctum::actingAs($this->privilegedUser);
         $response = $this->postJson($this->userEndpoint, $mockPayloadUser);
         $response->assertStatus(200);
 
@@ -114,6 +155,8 @@ class UserTest extends TestCase
             'name' => 'updating_name',
             'email' => 'updating@email.com',
         ];
+
+        Sanctum::actingAs($this->privilegedUser);
         $response = $this->patchJson("{$this->userEndpoint}/{$user->id}", $updatedMockPayloadUser);
         $response->assertStatus(200);
 
@@ -129,14 +172,14 @@ class UserTest extends TestCase
             'name' => 'changedName',
             'email' => 'changing@email.com',
         ];
-        $this->address = new OperationAddress("{$this->userEndpoint}/1", 'patch');
+        $address = new OperationAddress("{$this->userEndpoint}/{userId}", 'patch');
 
         $request = (new ServerRequest('patch', "{$this->userEndpoint}/1"))
             ->withHeader('Content-Type', 'application/json')
             ->withBody(Utils::streamFor(json_encode($updatedMockPayloadUser)));
 
         try {
-            $this->validator->validate($this->address, $request);
+            $this->validator->validate($address, $request);
             $this->addToAssertionCount(1);
         } catch (InvalidBody $e) {
             $latestException = $e->getMessage();
