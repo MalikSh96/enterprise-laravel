@@ -42,6 +42,7 @@ class UserController extends Controller
     *     @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/User"))
     *   ),
     *   @OA\Response(response=401, description="Unauthorized"),
+    *   @OA\Response(response=403, description="Forbidden"),
     *   @OA\Response(response=404, description="Not Found")
     * )
     */
@@ -60,6 +61,7 @@ class UserController extends Controller
     *     @OA\JsonContent(ref="#/components/schemas/User")
     *   ),
     *   @OA\Response(response=401, description="Unauthorized"),
+    *   @OA\Response(response=403, description="Forbidden"),
     *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
     * )
     */
@@ -87,6 +89,7 @@ class UserController extends Controller
     *     @OA\JsonContent(ref="#/components/schemas/User")
     *   ),
     *   @OA\Response(response=401, description="Unauthorized"),
+    *   @OA\Response(response=403, description="Forbidden"),
     *   @OA\Response(response=422, description="Unprocessable Entity / Validation Failed")
     * )
     */

@@ -25,6 +25,7 @@ class UserTest extends TestCase
     ];
 
     private User $privilegedUser;
+    private User $nonPrivilegedUser;
 
     protected function setUp(): void
     {
@@ -34,7 +35,8 @@ class UserTest extends TestCase
             ->fromJson(file_get_contents('http://127.0.0.1:8000/api/swagger.json'))
             ->getRoutedRequestValidator();
 
-        $this->privilegedUser = User::find(2);
+        $this->privilegedUser = User::find(1);
+        $this->nonPrivilegedUser = User::find(2);
     }
 
     public function test_all_users_getting_retrieved()
@@ -150,10 +152,10 @@ class UserTest extends TestCase
 
     public function test_that_serverside_updates_user()
     {
-        $user = User::find(1);
+        $user = User::find(3);
         $updatedMockPayloadUser = [
-            'name' => 'updating_name',
-            'email' => 'updating@email.com',
+            'name' => 'updated_name',
+            'email' => 'updated@email.com',
         ];
 
         Sanctum::actingAs($this->privilegedUser);
