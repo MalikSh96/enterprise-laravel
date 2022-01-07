@@ -35,7 +35,7 @@ class PermissionsDemoSeeder extends Seeder
             $deletePermissionOnUser
         ]);
 
-        // create demo users
+        // create demo user
         $adminUser = User::factory()->create([
             'name' => 'Malik-Admin',
             'email' => 'admin@example.com',
@@ -47,12 +47,6 @@ class PermissionsDemoSeeder extends Seeder
             $updatePermissionOnUser, 
             $readPermissionOnUser, 
             $deletePermissionOnUser
-        ]);
-
-        $nonAdminUser = User::factory()->create([
-            'name' => 'Malik-Non-Admin',
-            'email' => 'nonAdmin@example.com',
-            'password' =>  bcrypt("asd")
         ]);
     }
 }

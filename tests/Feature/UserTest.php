@@ -2,9 +2,6 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 use App\Models\User;
 use GuzzleHttp\Psr7\{ServerRequest, Utils};
@@ -35,8 +32,12 @@ class UserTest extends TestCase
             ->fromJson(file_get_contents('http://127.0.0.1:8000/api/swagger.json'))
             ->getRoutedRequestValidator();
 
-        $this->privilegedUser = User::find(1);
-        $this->nonPrivilegedUser = User::find(2);
+        $this->privilegedUser = User::findOrFail(1);
+        $this->nonPrivilegedUser = User::factory()->make([
+            'name' => 'Non-Admin',
+            'email' => 'nonAdmin@example.com',
+            'password' =>  bcrypt("asd")
+        ]);
     }
 
     public function test_all_users_getting_retrieved()
@@ -93,7 +94,7 @@ class UserTest extends TestCase
 
     public function test_that_existing_user_cannot_be_updated_due_to_unathorization()
     {
-        $user = User::find(1);
+        $user = User::find($this->privilegedUser->id);
         $updatedMockPayloadUser = [
             'name' => 'unauthorizedNameChange',
             'email' => 'updating@email.com',
@@ -115,6 +116,42 @@ class UserTest extends TestCase
         $response->assertStatus(401);
         $userIdsInResponse = collect(json_decode($response->content()))->pluck('id');
         $this->assertFalse($userIdsInResponse->diff($userIdsInDatabase)->isEmpty());
+    }
+
+    public function test_that_authenticated_user_is_forbidden_to_create_new_user_serverside_due_to_no_permission()
+    {
+        $uniqueTimestamp = microtime(true);
+        $mockPayloadUser = [
+            'name' => "{$uniqueTimestamp}-fake-name",
+            'email' => "{$uniqueTimestamp}test@email.com",
+        ];
+
+        Sanctum::actingAs($this->nonPrivilegedUser);
+        $response = $this->postJson($this->userEndpoint, $mockPayloadUser);
+        $response->assertStatus(403);
+
+        $this->assertDatabaseMissing('users', [
+            'name' => $mockPayloadUser['name'],
+            'email' => $mockPayloadUser['email'],
+        ]);
+    }
+
+    public function test_that_authenticated_user_is_forbidden_to_update_an_existing_user_serverside_due_to_no_permission()
+    {
+        $user = User::findOrFail($this->privilegedUser->id);
+        $updatedMockPayloadUser = [
+            'name' => 'non_updated_name',
+            'email' => 'non_updated@email.com',
+        ];
+
+        Sanctum::actingAs($this->nonPrivilegedUser);
+        $response = $this->patchJson("{$this->userEndpoint}/{$user->id}", $updatedMockPayloadUser);
+        $response->assertStatus(403);
+
+        $this->assertDatabaseMissing('users', [
+            'name' => $updatedMockPayloadUser['name'],
+            'email' => $updatedMockPayloadUser['email']
+        ]);
     }
 
     public function test_that_correct_payload_can_be_created_serverside()
@@ -152,7 +189,7 @@ class UserTest extends TestCase
 
     public function test_that_serverside_updates_user()
     {
-        $user = User::find(3);
+        $user = User::find($this->privilegedUser->id);
         $updatedMockPayloadUser = [
             'name' => 'updated_name',
             'email' => 'updated@email.com',
